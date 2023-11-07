@@ -5,6 +5,7 @@ import sutd.compiler.simp.syntax.SrcLoc.*
 import sutd.compiler.simp.syntax.AST.*
 import sutd.compiler.simp.syntax.Parsec.*
 import org.scalactic.Bool
+import java.nio.channels.ReadPendingException
 
 object Parser {
     /**
@@ -177,9 +178,12 @@ object Parser {
       * @return
       */
 
-    def p_space:Parser[PEnv, LToken] = item // fixme
+    def p_space:Parser[PEnv, LToken] = sat(ltoken => ltoken match {
+        case WhiteSpace(src, c) => true
+        case _ => false
+    })
     
-    def p_spaces:Parser[PEnv, List[LToken]] = many(item) // fixme
+    def p_spaces:Parser[PEnv, List[LToken]] = many(p_space) // fixme
 
     /** Lab 1 Task 1.1 end */
 
@@ -188,9 +192,166 @@ object Parser {
       * Parsing an expression
       * Note that 
       *   E ::= E Op E | X | C | (E) contains left recursion
+      *  without left recursion: 
+      *   E ::= X E' | C E' | (E) E'
+      *   E' ::= Op E E' | \epsilon
       * @return
-      */
-    def p_exp:Parser[PEnv, Exp] = empty(ConstExp(IntConst(1))) // fixme
+      */ 
+    def p_exp:Parser[PEnv, Exp] = for {
+        ele <- p_expLE
+    } yield fromExpLE(ele)
+     // fixme
+
+    // def p_opexp:Parser[PEnv, Exp] = for { //left recursion
+    //     e1 <- p_exp
+    //     _ <- p_spaces
+    //     op <- choice(choice(choice(p_plus)(p_minus))(p_mult))(choice(p_lthan)(choice(p_dequal)(p_equal)))
+    //     _ <- p_spaces
+    //     e2 <- p_exp
+    // } yield OpExp(op, e1, e2)
+
+    // def p_varExp:Parser[PEnv, Exp] = for {
+    //     x <- p_var
+    // } yield VarExp(x)
+
+    // def p_constExp:Parser[PEnv, Exp] = for {
+    //     c <- p_const
+    // } yield ConstExp(c)
+
+    // def p_paranExp:Parser[PEnv, Exp] = for {
+    //     _ <- p_lparen
+    //     e <- p_exp
+    //     _ <- p_rparen
+    // } yield e
+
+    enum ExpLE {
+        case VarExpLE(v: Var, e: ExpLEP)
+        case ConstExpLE(c: Const, e: ExpLEP)
+        case ParenExpLE(e: ExpLE, ep: ExpLEP)
+    }
+
+    enum ExpLEP{
+        case PlusExpLEP(e: ExpLE, ep: ExpLEP)
+        case MinusExpLEP(e: ExpLE, ep: ExpLEP)
+        case MultExpLEP(e: ExpLE, ep: ExpLEP)
+        case LtExpLEP(e: ExpLE, ep: ExpLEP)
+        // case EqExpLEP(e: ExpLE, ep: ExpLEP)
+        case DEqExpLEP(e: ExpLE, ep: ExpLEP)
+        case Eps
+    }
+
+    def fromExpLE(e:ExpLE):Exp= e match{
+        case ExpLE.VarExpLE(v, ep) => fromExpLEP(VarExp(v))(ep)
+        case ExpLE.ConstExpLE(c, ep) => fromExpLEP(ConstExp(c))(ep)
+        case ExpLE.ParenExpLE(e1, ep) => fromExpLEP(ParenExp(fromExpLE(e1)))(ep)
+
+    }
+
+    def fromExpLEP(e1: Exp)(ep1:ExpLEP):Exp= ep1 match{
+        case ExpLEP.PlusExpLEP(e2, ep2) => {
+            val e3 = fromExpLE(e2)
+            val e4 = Exp.Plus(e1, e3)
+            fromExpLEP(e4)(ep2)
+        }
+        case ExpLEP.MinusExpLEP(e2, ep2) => {
+            val e3 = fromExpLE(e2)
+            val e4 = Exp.Minus(e1, e3)
+            fromExpLEP(e4)(ep2)
+        }
+        case ExpLEP.MultExpLEP(e2, ep2) => {
+            val e3 = fromExpLE(e2)
+            val e4 = Exp.Mult(e1, e3)
+            fromExpLEP(e4)(ep2)
+        }
+        case ExpLEP.LtExpLEP(e2, ep2) => {
+            val e3 = fromExpLE(e2)
+            val e4 = Exp.LThan(e1, e3)
+            fromExpLEP(e4)(ep2)
+        }
+        case ExpLEP.DEqExpLEP(e2, ep2) => {
+            val e3 = fromExpLE(e2)
+            val e4 = Exp.DEqual(e1, e3)
+            fromExpLEP(e4)(ep2)
+        }
+        case ExpLEP.Eps => e1
+    }
+
+    def p_expLE:Parser[PEnv, ExpLE] = choice(choice(p_varExpLE)(p_constExpLE))(p_paranExpLE)
+
+    def p_expLEP:Parser[PEnv, ExpLEP] = for{
+        omt <- optional(choice(attempt(p_plusExp))(choice(attempt(p_minusExp))(choice(attempt(p_multExp))(choice(attempt(p_ltExp))(attempt(p_dEqExp))))))
+        } yield {
+            omt match{
+                case Right(omt) => omt
+                case Left(_) => ExpLEP.Eps
+            }
+        }
+    
+
+    def p_plusExp:Parser[PEnv, ExpLEP] = for{
+        _ <- p_spaces
+        _ <- p_plus
+        _ <- p_spaces
+        e <- p_expLE
+        ep <- p_expLEP
+    } yield ExpLEP.PlusExpLEP(e, ep)
+
+    def p_minusExp:Parser[PEnv, ExpLEP] = for{
+        _ <- p_spaces
+        _ <- p_minus
+        _ <- p_spaces
+        e <- p_expLE
+        ep <- p_expLEP
+    } yield ExpLEP.MinusExpLEP(e, ep)
+
+    def p_ltExp:Parser[PEnv, ExpLEP] = for{
+        _ <- p_spaces
+        _ <- p_lthan
+        _ <- p_spaces
+        e <- p_expLE
+        ep <- p_expLEP
+    } yield ExpLEP.LtExpLEP(e, ep)
+
+    def p_multExp:Parser[PEnv, ExpLEP] = for{
+        _ <- p_spaces
+        _ <- p_mult
+        _ <- p_spaces
+        e <- p_expLE
+        ep <- p_expLEP
+    } yield ExpLEP.MultExpLEP(e, ep)
+
+    // def p_eqExp:Parser[PEnv, ExpLEP] = for{
+    //     _ <- p_spaces
+    //     _ <- p_equal
+    //     _ <- p_spaces
+    //     e <- p_expLE
+    //     ep <- p_expLEP
+    // } yield ExpLEP.EqExpLEP(e, ep)
+
+    def p_dEqExp:Parser[PEnv, ExpLEP] = for{
+        _ <- p_spaces
+        _ <- p_dequal
+        _ <- p_spaces
+        e <- p_expLE
+        ep <- p_expLEP
+    } yield ExpLEP.DEqExpLEP(e, ep)
+
+    def p_varExpLE:Parser[PEnv, ExpLE] = for {
+        x <- p_var
+        e <- p_expLEP
+    } yield ExpLE.VarExpLE(x, e)
+
+    def p_constExpLE:Parser[PEnv, ExpLE] = for {
+        c <- p_const
+        e <- p_expLEP
+    } yield ExpLE.ConstExpLE(c, e)
+
+    def p_paranExpLE:Parser[PEnv, ExpLE] = for {
+        _ <- p_lparen
+        e <- p_expLE
+        _ <- p_rparen
+        ep <- p_expLEP
+    } yield ExpLE.ParenExpLE(e, ep)
     /** Lab 1 Task 1.2 end */
     
     /**
