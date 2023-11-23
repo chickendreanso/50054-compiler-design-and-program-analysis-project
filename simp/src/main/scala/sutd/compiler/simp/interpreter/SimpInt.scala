@@ -50,7 +50,13 @@ object SimpInt {
         c3 <- plusConst(c1,c2)
       } yield c3
       // Lab 2 Task 1.1
-      case _ => Left("TODO") // fixme
+      case VarExp(v) => for {
+        c <- dlt.get(v) match {
+          case Some(c) => Right(c)
+          case None => Left("TODO") // fixme
+        }
+      } yield c
+      case ParenExp(e1) => evalExp(dlt, e1)
       // Lab 2 Task 1.1 end
     }
 
@@ -72,7 +78,10 @@ object SimpInt {
       def eval(dlt:Delta, ss:List[A]):Either[ErrMsg, Delta] = ss match {
         case Nil => Right(dlt) 
         // Lab 2 Task 1.2 
-        case _ => Left("TODO") // fixme
+        case s :: ss => for {
+          dlt_1 <- i.eval(dlt, s)
+          dlt_2 <- eval(dlt_1, ss)
+        } yield dlt_2
         // Lab 2 Task 1.2 end
       }
     }
@@ -93,7 +102,17 @@ object SimpInt {
         } yield dlt_2
         case Ret(x) => Right(dlt)
         // Lab 2 Task 1.2 
-        case _ => Left("TODO") // fixme
+        case While(cond, body) => for {
+          c <- evalExp(dlt, cond)
+          dlt_2 <- c match {
+            case IntConst(_) => Left("int expression found in the while condition position.")
+            case BoolConst(b) if b => evalMany.eval(dlt, body) match {
+              case Right(dlt_1) => eval(dlt_1, s)
+              case Left(err) => Left(err)
+            }
+            case BoolConst(b) => Right(dlt)
+          }
+        } yield dlt_2
         // Lab 2 Task 1.2 end
       }
 
