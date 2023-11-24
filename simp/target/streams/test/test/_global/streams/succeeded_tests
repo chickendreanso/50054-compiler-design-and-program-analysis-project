@@ -1,0 +1,8 @@
+#Successful Tests
+#Fri Nov 24 15:04:39 SGT 2023
+sutd.compiler.simp.TestMaximalMunch=1700809479392
+sutd.compiler.simp.TestParser=1700809479542
+sutd.compiler.simp.TestLexer=1700809479430
+sutd.compiler.simp.TestSimpInt=1700809479388
+sutd.compiler.simp.TestMMUpDown=1700809479391
+sutd.compiler.simp.TestPAInt=1700809479394

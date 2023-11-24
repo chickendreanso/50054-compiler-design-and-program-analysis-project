@@ -246,7 +246,7 @@ object TypeInf {
                 case List(x) => u.mgu(x)
                 case x::xs => u.mgu(x) match {
                     case Right(subst) => mgu(s.applySubst(subst)(xs)) match {
-                        case Right(subst2) => Right(subst2)
+                        case Right(subst2) => Right(compose(subst2, subst))
                         case Left(err) => Left(err)
                     }
                     case Left(err) => Left(err)

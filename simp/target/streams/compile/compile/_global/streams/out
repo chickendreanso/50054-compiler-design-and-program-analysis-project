@@ -1,0 +1,5 @@
+[0m[[0m[33mwarn[0m] [0m[0m[33m[33m-- [E121] Pattern Match Warning: /Users/victoriachong/Documents/SUTD/TERM 7/50.054 Compiler Design and Program Analysis/50054-compiler-design-and-program-analysis-project/simp/src/main/scala/sutd/compiler/simp/ir/MMUpDown.scala:203:13 [0m[0m[0m
+[0m[[0m[33mwarn[0m] [0m[0m[33m203 |[0m        [33mcase[0m _ => StateT{ st => Identity((st, List())) }  [34m// fixme[0m[0m
+[0m[[0m[33mwarn[0m] [0m[0m[33m[33m    |[0m             ^[0m[0m
+[0m[[0m[33mwarn[0m] [0m[0m[33m    |[0mUnreachable case except for [31mnull[0m (if this is intentional, consider writing [33mcase[0m [31mnull[0m => instead).[0m
+[0m[[0m[33mwarn[0m] [0m[0mone warning found[0m
