@@ -199,8 +199,6 @@ object MMUpDown {
             instrs1          = List((lblWhileCondJ, IIfNot(cond_u, lblEndWhile)))
             instrs2a         = instrs2 ++ List((lblEndBody, IGoto(lblWhile)))
         } yield cond_d ++ instrs1 ++ instrs2a
-
-        case _ => StateT{ st => Identity((st, List())) }  // fixme
         // Lab 1 Task 2.2 end
     }
 

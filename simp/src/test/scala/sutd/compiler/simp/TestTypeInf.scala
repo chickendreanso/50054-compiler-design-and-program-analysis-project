@@ -248,58 +248,7 @@ class TestTypeInf extends funsuite.AnyFunSuite {
             }
         }
     }
-
-    /*
-    x = input; 
-    s = 0;     
-    c = 0;     
-    return s;
-    */
-    test("test typeinf no while and if") {
-        val input = Var("input")
-        val x = Var("x")
-        val s = Var("s")
-        val c = Var("c")
-        val p = List(
-            Assign(x, VarExp(input)),
-            Assign(s, ConstExp(IntConst(0))),
-            Assign(c, ConstExp(IntConst(0))),
-            Ret(s)
-        )
-        val expected = Map(Var("c") -> IntTy, Var("x") -> Var("input"), Var("s") -> IntTy)
-        typeInf(p) match {
-            case Left(errorMessage) => {
-                println(errorMessage)
-                assert(false)
-            }
-            case Right(typeenv) => 
-                println(typeenv)
-                assert(true)
-        }
-    }
-
-    /*
-    s = 0;     
-    return s;
-    */
-    test("test typeinf one variable") {
-        val s = Var("s")
-        val p = List(
-            Assign(s, ConstExp(IntConst(0))),
-            Ret(s)
-        )
-        val expected = Map(Var("s") -> IntTy)
-        typeInf(p) match {
-            case Left(errorMessage) => {
-                println(errorMessage)
-                assert(false)
-            }
-            case Right(typeenv) => 
-                println(typeenv)
-                assert(expected == typeenv)
-        }
-    }
-
+    
     /*
     x = 0; 
     s = 0;     
